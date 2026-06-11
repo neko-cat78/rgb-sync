@@ -12,7 +12,6 @@ import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.*
@@ -26,7 +25,8 @@ class ScreenCaptureService : Service() {
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
 
-        const val ACTION_STOP = "com.rgbledsync.STOP_CAPTURE"
+        private const val CAPTURE_WIDTH = 320
+        private const val CAPTURE_HEIGHT = 180
     }
 
     private var mediaProjection: MediaProjection? = null
@@ -37,8 +37,6 @@ class ScreenCaptureService : Service() {
 
     private lateinit var transmitter: IrController
     private var lastSentCode: Long = -1
-    private var lastColorName: String = ""
-    private var lastColorRgb: Int = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -46,16 +44,9 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_STOP -> {
-                stopSelf()
-                return START_NOT_STICKY
-            }
-        }
-
         val startNotification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("RGB LED Sync")
-            .setContentText("Capturing screen...")
+            .setContentText("Starting...")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setOngoing(true)
             .build()
@@ -70,33 +61,47 @@ class ScreenCaptureService : Service() {
             return START_NOT_STICKY
         }
 
-        val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        mediaProjection = mpm.getMediaProjection(resultCode, data)
+        try {
+            val mpm = if (Build.VERSION.SDK_INT >= 33) {
+                getSystemService(MediaProjectionManager::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            }
 
-        val displayMetrics = resources.displayMetrics
-        val width = displayMetrics.widthPixels
-        val height = displayMetrics.heightPixels
-        val density = displayMetrics.densityDpi
+            mediaProjection = mpm.getMediaProjection(resultCode, data)
 
-        imageReader = ImageReader.newInstance(width, height, android.graphics.PixelFormat.RGBA_8888, 2)
+            val density = resources.displayMetrics.densityDpi
 
-        virtualDisplay = mediaProjection?.createVirtualDisplay(
-            "ScreenCapture",
-            width, height, density,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            imageReader?.surface, null, null
-        )
+            imageReader = ImageReader.newInstance(CAPTURE_WIDTH, CAPTURE_HEIGHT, PixelFormat.RGBA_8888, 2)
 
-        transmitter = IrController.create(this)
-        startCaptureLoop()
+            virtualDisplay = mediaProjection?.createVirtualDisplay(
+                "ScreenCapture",
+                CAPTURE_WIDTH, CAPTURE_HEIGHT, density,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader?.surface, null, null
+            )
+
+            transmitter = IrController.create(this)
+            startCaptureLoop()
+
+            updateNotification("Running")
+        } catch (e: Exception) {
+            updateNotification("Error: ${e.message}")
+            stopSelf()
+        }
 
         return START_STICKY
     }
 
     private fun startCaptureLoop() {
         captureJob = scope.launch {
+            delay(500)
             while (isActive) {
-                captureAndProcess()
+                try {
+                    captureAndProcess()
+                } catch (_: Exception) {
+                }
                 delay(1000)
             }
         }
@@ -107,21 +112,15 @@ class ScreenCaptureService : Service() {
         val image = reader.acquireLatestImage() ?: return
 
         try {
-            val bitmap = bitmapFromImage(image)
-            if (bitmap == null) return
-
+            val bitmap = bitmapFromImage(image) ?: return
             val avgColor = ColorAnalyzer.analyzeBitmap(bitmap)
             val matched = ColorMapping.findClosestColor(avgColor)
 
             if (matched.necCode != lastSentCode) {
                 transmitter.transmit(matched.necCode)
                 lastSentCode = matched.necCode
-                lastColorName = matched.name
-                lastColorRgb = matched.rgb
-
-                updateNotification(matched.name)
+                updateNotification("Matched: ${matched.name}")
             }
-        } catch (_: Exception) {
         } finally {
             image.close()
         }
@@ -139,7 +138,6 @@ class ScreenCaptureService : Service() {
         val height = image.height
 
         buffer.rewind()
-
         if (width <= 0 || height <= 0) return null
 
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -149,53 +147,55 @@ class ScreenCaptureService : Service() {
             return bitmap
         }
 
-        val pixels = IntArray(width * height)
-        val rowBytes = ByteArray(rowStride)
-
+        val tempRow = ByteArray(rowStride.coerceAtMost(4096))
         for (row in 0 until height) {
             buffer.position(row * rowStride)
-            buffer.get(rowBytes, 0, rowStride)
+            val readLen = minOf(rowStride, tempRow.size)
+            buffer.get(tempRow, 0, readLen)
 
             for (col in 0 until width) {
                 val idx = col * pixelStride
-                val r = rowBytes[idx].toInt() and 0xFF
-                val g = rowBytes[idx + 1].toInt() and 0xFF
-                val b = rowBytes[idx + 2].toInt() and 0xFF
-                val a = if (pixelStride >= 4) rowBytes[idx + 3].toInt() and 0xFF else 0xFF
-                pixels[row * width + col] = (a shl 24) or (r shl 16) or (g shl 8) or b
+                if (idx + 3 >= readLen) break
+                val r = tempRow[idx].toInt() and 0xFF
+                val g = tempRow[idx + 1].toInt() and 0xFF
+                val b = tempRow[idx + 2].toInt() and 0xFF
+                val a = if (pixelStride >= 4) tempRow[idx + 3].toInt() and 0xFF else 0xFF
+                bitmap.setPixel(col, row, (a shl 24) or (r shl 16) or (g shl 8) or b)
             }
         }
 
-        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
         return bitmap
     }
 
-    private fun updateNotification(colorName: String) {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("RGB LED Sync")
-            .setContentText("Matched: $colorName")
-            .setSmallIcon(android.R.drawable.ic_menu_camera)
-            .setOngoing(true)
-            .build()
+    private fun updateNotification(text: String) {
+        try {
+            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("RGB LED Sync")
+                .setContentText(text)
+                .setSmallIcon(android.R.drawable.ic_menu_camera)
+                .setOngoing(true)
+                .build()
 
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(NOTIFICATION_ID, notification)
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(NOTIFICATION_ID, notification)
+        } catch (_: Exception) {
+        }
     }
 
     override fun onDestroy() {
         captureJob?.cancel()
         scope.cancel()
-        virtualDisplay?.release()
-        imageReader?.close()
-        mediaProjection?.stop()
-        transmitter.release()
+        try { virtualDisplay?.release() } catch (_: Exception) {}
+        try { imageReader?.close() } catch (_: Exception) {}
+        try { mediaProjection?.stop() } catch (_: Exception) {}
+        try { if (::transmitter.isInitialized) transmitter.release() } catch (_: Exception) {}
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= 26) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Screen Capture",
