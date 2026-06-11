@@ -79,15 +79,16 @@ class MainActivity : ComponentActivity() {
 
     private fun setupForceSendButtons() {
         val colorButtons = listOf(
-            R.id.btnOrange to ColorMapping.colors[0],
-            R.id.btnLightGreen to ColorMapping.colors[1],
-            R.id.btnDarkBlue to ColorMapping.colors[2],
-            R.id.btnDeepYellow to ColorMapping.colors[3],
-            R.id.btnCyan to ColorMapping.colors[4],
-            R.id.btnPurple to ColorMapping.colors[5],
-            R.id.btnLightYellow to ColorMapping.colors[6],
-            R.id.btnTeal to ColorMapping.colors[7],
-            R.id.btnMagenta to ColorMapping.colors[8],
+            R.id.btnGreen to ColorMapping.colors[0],
+            R.id.btnRed to ColorMapping.colors[1],
+            R.id.btnOrange to ColorMapping.colors[2],
+            R.id.btnDarkBlue to ColorMapping.colors[3],
+            R.id.btnDeepYellow to ColorMapping.colors[4],
+            R.id.btnCyan to ColorMapping.colors[5],
+            R.id.btnPurple to ColorMapping.colors[6],
+            R.id.btnLightYellow to ColorMapping.colors[7],
+            R.id.btnTeal to ColorMapping.colors[8],
+            R.id.btnMagenta to ColorMapping.colors[9],
         )
 
         val modeButtons = listOf(

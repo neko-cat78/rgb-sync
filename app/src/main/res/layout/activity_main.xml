@@ -73,8 +73,9 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
+                <Button android:id="@+id/btnGreen" android:layout_width="wrap_content" android:layout_height="48dp" android:text="Green" android:backgroundTint="#4CAF50" android:focusable="true" />
+                <Button android:id="@+id/btnRed" android:layout_width="wrap_content" android:layout_height="48dp" android:text="Red" android:backgroundTint="#F44336" android:focusable="true" />
                 <Button android:id="@+id/btnOrange" android:layout_width="wrap_content" android:layout_height="48dp" android:text="Orange" android:backgroundTint="#FF9800" android:focusable="true" />
-                <Button android:id="@+id/btnLightGreen" android:layout_width="wrap_content" android:layout_height="48dp" android:text="L.Green" android:backgroundTint="#8BC34A" android:focusable="true" />
                 <Button android:id="@+id/btnDarkBlue" android:layout_width="wrap_content" android:layout_height="48dp" android:text="D.Blue" android:backgroundTint="#1A237E" android:focusable="true" />
                 <Button android:id="@+id/btnDeepYellow" android:layout_width="wrap_content" android:layout_height="48dp" android:text="D.Yellow" android:backgroundTint="#FFC107" android:focusable="true" />
                 <Button android:id="@+id/btnCyan" android:layout_width="wrap_content" android:layout_height="48dp" android:text="Cyan" android:backgroundTint="#00BCD4" android:focusable="true" />

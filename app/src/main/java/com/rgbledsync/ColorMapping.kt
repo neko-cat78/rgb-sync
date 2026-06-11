@@ -16,8 +16,9 @@ object ColorMapping {
     }
 
     val colors = listOf(
+        ColorEntry("Green",       0xFF4CAF50L.toInt(), necCode(0xA0)),
+        ColorEntry("Red",         0xFFF44336L.toInt(), necCode(0x20)),
         ColorEntry("Orange",      0xFFFF9800L.toInt(), necCode(0x10)),
-        ColorEntry("Light Green", 0xFF8BC34AL.toInt(), necCode(0x90)),
         ColorEntry("Dark Blue",   0xFF1A237EL.toInt(), necCode(0x50)),
         ColorEntry("Deep Yellow", 0xFFFFC107L.toInt(), necCode(0x30)),
         ColorEntry("Cyan",        0xFF00BCD4L.toInt(), necCode(0xB0)),
