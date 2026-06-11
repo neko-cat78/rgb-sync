@@ -1,7 +1,7 @@
 package com.rgbledsync
 
 import android.content.Context
-import android.hardware.consumerir.ConsumerIrManager
+import android.hardware.ConsumerIrManager
 
 interface IrController {
     fun transmit(necCode: Long)

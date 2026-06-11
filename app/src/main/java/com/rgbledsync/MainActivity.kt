@@ -16,7 +16,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var colorNameText: TextView
     private lateinit var colorPreview: TextView
     private lateinit var actionButton: Button
-    private lateinit var forceSendLabel: TextView
 
     private var isCapturing = false
     private lateinit var irController: IrController
@@ -37,7 +36,6 @@ class MainActivity : ComponentActivity() {
         colorNameText = findViewById(R.id.colorNameText)
         colorPreview = findViewById(R.id.colorPreview)
         actionButton = findViewById(R.id.actionButton)
-        forceSendLabel = findViewById(R.id.forceSendLabel)
 
         irController = IrController.create(this)
         actionButton.setOnClickListener { toggleCapture() }

@@ -1,6 +1,6 @@
 package com.rgbledsync
 
-import android.hardware.consumerir.ConsumerIrManager
+import android.hardware.ConsumerIrManager
 
 class BuiltInIrTransmitter(private val consumerIr: ConsumerIrManager) : IrController {
 

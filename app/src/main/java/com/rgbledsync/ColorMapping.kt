@@ -7,22 +7,30 @@ data class ColorEntry(
 )
 
 object ColorMapping {
+    private fun necCode(cmd: Int): Long {
+        val addr = 0xF7L
+        val addrInv = 0x08L
+        val cmdL = cmd.toLong() and 0xFF
+        val cmdInv = cmdL xor 0xFF
+        return (cmdInv shl 24) or (cmdL shl 16) or (addrInv shl 8) or addr
+    }
+
     val colors = listOf(
-        ColorEntry("Orange",      0xFFFF9800, 0xF70810EFL),
-        ColorEntry("Light Green", 0xFF8BC34A, 0xF708906FL),
-        ColorEntry("Dark Blue",   0xFF1A237E, 0xF70850AFL),
-        ColorEntry("Deep Yellow", 0xFFFFC107, 0xF70830CFL),
-        ColorEntry("Cyan",        0xFF00BCD4, 0xF708B04FL),
-        ColorEntry("Purple",      0xFF9C27B0, 0xF708708FL),
-        ColorEntry("Light Yellow",0xFFFFF9C4, 0xF70808F7L),
-        ColorEntry("Teal",        0xFF009688, 0xF7088877L),
-        ColorEntry("Magenta",     0xFFE91E63, 0xF70848B7L),
+        ColorEntry("Orange",      0xFFFF9800L.toInt(), necCode(0x10)),
+        ColorEntry("Light Green", 0xFF8BC34AL.toInt(), necCode(0x90)),
+        ColorEntry("Dark Blue",   0xFF1A237EL.toInt(), necCode(0x50)),
+        ColorEntry("Deep Yellow", 0xFFFFC107L.toInt(), necCode(0x30)),
+        ColorEntry("Cyan",        0xFF00BCD4L.toInt(), necCode(0xB0)),
+        ColorEntry("Purple",      0xFF9C27B0L.toInt(), necCode(0x70)),
+        ColorEntry("Light Yellow",0xFFFFF9C4L.toInt(), necCode(0x08)),
+        ColorEntry("Teal",        0xFF009688L.toInt(), necCode(0x88)),
+        ColorEntry("Magenta",     0xFFE91E63L.toInt(), necCode(0x48)),
     )
 
     val modes = listOf(
-        ColorEntry("FLASH",  0xFFFFFFFF, 0xF708D02FL),
-        ColorEntry("STROBE", 0xFFFFFFFF, 0xF708F00FL),
-        ColorEntry("FADE",   0xFFFFFFFF, 0xF708C837L),
+        ColorEntry("FLASH",  0xFFFFFFFFL.toInt(), necCode(0xD0)),
+        ColorEntry("STROBE", 0xFFFFFFFFL.toInt(), necCode(0xF0)),
+        ColorEntry("FADE",   0xFFFFFFFFL.toInt(), necCode(0xC8)),
     )
 
     fun findClosestColor(targetRgb: Int): ColorEntry {

@@ -23,7 +23,7 @@ class IrTransmitter : IrController {
     private var audioTrack: AudioTrack? = null
 
     @Synchronized
-    fun transmit(necCode: Long) {
+    override fun transmit(necCode: Long) {
         release()
         val buffer = generateNecBuffer(necCode)
         val track = buildTrack(buffer)
@@ -58,7 +58,7 @@ class IrTransmitter : IrController {
     }
 
     @Synchronized
-    fun release() {
+    override fun release() {
         audioTrack?.let {
             if (it.playState == AudioTrack.PLAYSTATE_PLAYING) {
                 it.stop()
